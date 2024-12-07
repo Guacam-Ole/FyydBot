@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="LLamaSharp" Version="0.19.0" />
+      <PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.19.0" />
+      <PackageReference Include="Mastonet" Version="4.0.0-preview0" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+      <PackageReference Include="NReco.Logging.File" Version="1.2.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="secrets.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="openhermes-2.5-mistral-7b.Q4_K_M.gguf">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="secrets.example.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+</Project>
