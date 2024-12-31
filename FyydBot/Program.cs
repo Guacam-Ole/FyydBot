@@ -11,7 +11,7 @@ public class FyydBot
 {
     public static async Task Main(string[] args)
     {
-        var services = AddServices(JsonConvert.DeserializeObject<Secrets>(File.ReadAllText("secrets.json")));
+        var services = AddServices();
         var mastodon = services.GetService<Mastodon>();
         var llama = services.GetService<Llama>() ?? throw new NullReferenceException();
         var fyyd = services.GetService<Fyyd>() ?? throw new NullReferenceException();
@@ -71,13 +71,16 @@ public class FyydBot
             catch (Exception e)
             {
                 logger.LogError(e, "error in loop");
-                throw;
+                Console.WriteLine(e);
+                return; 
             }
         }
     }
 
-    private static ServiceProvider AddServices(Secrets secrets)
+    private static ServiceProvider AddServices()
     {
+        var secrets = JsonConvert.DeserializeObject<Secrets>(File.ReadAllText("secrets.json"))?? throw new NullReferenceException();
+        var config= JsonConvert.DeserializeObject<Config>(File.ReadAllText("config.json")) ?? throw new NullReferenceException();
         var services = new ServiceCollection();
 
         services.AddLogging(logging =>
@@ -95,6 +98,7 @@ public class FyydBot
             });
         });
         services.AddSingleton(secrets);
+        services.AddSingleton(config);
         services.AddScoped<Mastodon>();
         services.AddScoped<Llama>();
         services.AddScoped<Fyyd>();

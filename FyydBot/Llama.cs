@@ -10,13 +10,11 @@ using LLama.Sampling;
 
 public class Llama
 {
+    private readonly Config _config;
     private readonly ILogger<Llama> _logger;
-    private const string _modelPath = @"openhermes-2.5-mistral-7b.Q4_K_M.gguf";
-
-
-
-    public Llama(ILogger<Llama> logger)
+    public Llama(Config config, ILogger<Llama> logger)
     {
+        _config = config;
         _logger = logger;
     }
 
@@ -58,7 +56,7 @@ public class Llama
         {
             if (string.IsNullOrWhiteSpace(date)) return null;
 
-            var parameters = new ModelParams(_modelPath)
+            var parameters = new ModelParams(_config.Gguf)
             {
                 ContextSize = 1024,
                 GpuLayerCount = 0,
@@ -78,8 +76,8 @@ public class Llama
                     response += text;
                 }
 
-                var jsonStart = response.IndexOf("{", StringComparison.Ordinal);
-                var jsonEnd = response.IndexOf("}", jsonStart, StringComparison.Ordinal) + 1;
+                var jsonStart = response.IndexOf('{');
+                var jsonEnd = response.IndexOf('}', jsonStart) + 1;
 
                 var json = response.Substring(jsonStart, jsonEnd - jsonStart);
                 var dateResponse = JsonConvert.DeserializeObject<LlamaResponseQueryDates>(json);
@@ -93,12 +91,11 @@ public class Llama
         }
     }
 
-
     public async Task<LlamaResponseQuery?> ParseSearchQuery(string search)
     {
         try
         {
-            var parameters = new ModelParams(_modelPath)
+            var parameters = new ModelParams(_config.Gguf)
             {
                 ContextSize = 1024,
                 GpuLayerCount = 0,
@@ -119,8 +116,8 @@ public class Llama
                 response += text;
             }
 
-            var jsonStart = response.IndexOf("{", StringComparison.Ordinal);
-            var jsonEnd = response.IndexOf("}", jsonStart, StringComparison.Ordinal) + 1;
+            var jsonStart = response.IndexOf('{');
+            var jsonEnd = response.IndexOf('}', jsonStart) + 1;
 
             var json = response.Substring(jsonStart, jsonEnd - jsonStart);
 
