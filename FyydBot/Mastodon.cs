@@ -1,6 +1,3 @@
-using System.Net;
-using System.Text.RegularExpressions;
-using LLama;
 using Mastonet;
 using Mastonet.Entities;
 using Microsoft.Extensions.Logging;
@@ -180,6 +177,7 @@ public class Mastodon
             try
             {
                 await func();
+                return;
             }
             catch (Exception ex)
             {
@@ -218,6 +216,7 @@ public class Mastodon
     {
         return await Retry(async () =>
         {
+            _logger.LogDebug("sending single message");
             var client = Login(_secrets.Mastodon.Instance, _secrets.Mastodon.AccessToken);
             var status = await client.PublishStatus(message, visibility, replyToId);
             _logger.LogInformation("Added message to status: '{id}' in reply to '{reply}'", status.Id, replyToId);
@@ -229,6 +228,7 @@ public class Mastodon
     {
         await Retry(async () =>
         {
+            _logger.LogDebug("dismissing notification");
             var client = Login(_secrets.Mastodon.Instance, _secrets.Mastodon.AccessToken);
             await client.DismissNotification(notificationId);
         });
@@ -238,6 +238,7 @@ public class Mastodon
     {
         await Retry(async () =>
         {
+            _logger.LogDebug("updated single message");
             message = "@" + account.AccountName + " " + message;
             var client = Login(_secrets.Mastodon.Instance, _secrets.Mastodon.AccessToken);
             return await client.EditStatus(id, message);
