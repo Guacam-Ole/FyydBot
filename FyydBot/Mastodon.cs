@@ -184,6 +184,7 @@ public class Mastodon
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error on Mastodon call {retries} retries left", retriesLeft);
+                Thread.Sleep((1+maxMastodonRetries-retriesLeft)*10000); // wait 10,20,30,... seconds
                 retriesLeft--;
                 if (retriesLeft == 0) throw;
             }
@@ -204,6 +205,7 @@ public class Mastodon
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error on Mastodon call {retries} retries left", retriesLeft);
+                Thread.Sleep((1+maxMastodonRetries-retriesLeft)*10000); // wait 10,20,30,... seconds
                 retriesLeft--;
                 if (retriesLeft == 0) throw;
             }
