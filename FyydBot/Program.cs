@@ -38,32 +38,40 @@ public class FyydBot
 
                 foreach (var notification in notifications)
                 {
+                    await mastodon.DismissNotification(notification.Id);
                     if (notification?.Status?.Content == null) continue;
-                    var searchContents = await llama.ParseSearchQuery(mastodon.StripHtml(notification.Status.Content));
+                    if (!string.IsNullOrEmpty(notification?.Status?.InReplyToId)) continue; // no discussion thread
+                    var replyId=await mastodon.ReplyTo(notification.Status,
+                        "Alles klar, ich schau mal ob ich da was finde \ud83d\udd0e (kann ein paar Minuten dauern \u231a\ufe0f )");
+                    
+                    var searchContents = await llama.ParseSearchQuery(notification.Status.Content.StripHtml());
                     if (searchContents == null)
                     {
                         logger!.LogWarning("Failed to parse search query: '{content}'",notification.Status.Content);
-                        await mastodon.SendErrorResponse(notification.Status, notification.Status.Visibility, "Sorry. Ich versteh das nicht wirklich. Bin ja auch nur ein dummer Bot. Wenn Du mir gar keine Frage stellen wolltest. Ignoriere das einfach :)");
+                        await mastodon.SendErrorResponse(notification.Status, replyId, "Sorry. Ich versteh das nicht wirklich. Bin ja auch nur ein dummer Bot. \ud83e\udd16 Wenn Du mir gar keine Frage stellen wolltest. Ignoriere das einfach :)");
                         await mastodon.DismissNotification(notification.Id);
                         continue;
                     }
 
                     if (string.IsNullOrWhiteSpace(searchContents.PodcastName) && string.IsNullOrWhiteSpace(searchContents.Keywords))
                     {
-                        logger!.LogWarning("Succesfully parsde search query, but no keywords found: '{content}'",notification.Status.Content);
-                        await mastodon.SendErrorResponse(notification.Status, notification.Status.Visibility, "Ich konnte weder einen Podcast, noch einen Suchbegriff aus Deiner Anfrage bestimmen.\nBeispiel für eine Anfrage, die ich verstehe:'Ich suche einen Podcast über Gummibärchen'");
+                        logger!.LogWarning("Succesfully parsed search query, but no keywords found: '{content}'",notification.Status.Content);
+                        await mastodon.SendErrorResponse(notification.Status, replyId, "Ich konnte weder einen Podcast, noch einen Suchbegriff aus Deiner Anfrage bestimmen.\u2753\ufe0f\nBeispiel für eine Anfrage, die ich verstehe:'Ich suche einen Podcast über Gummibärchen'");
                         continue;
                     }
 
+                    await mastodon.UpdateSingleMessage(notification.Status.Account, replyId,
+                        $"Ich sammel mal eben die Podcasts zu '{string.Join(' ',searchContents.Keywords)}' zusammen. Einen kleinen Moment noch");
+                    
                     var searchResponse = await fyyd.SearchForEpisode(searchContents);
                     if (searchResponse == null || searchResponse.Count == 0)
                     {
                         logger!.LogInformation("Succesfully parsed search query, but no matchs from Fyyd: '{content}'",notification.Status.Content);
-                        await mastodon.SendErrorResponse(notification.Status, notification.Status.Visibility, "Ich habe Dich zwar verstanden, aber keine passenden Podcasts gefunden.");
+                        await mastodon.SendErrorResponse(notification.Status, replyId, "Ich habe Dich zwar verstanden, aber keine passenden Podcasts gefunden. \ud83e\udd37");
                         continue;
                     }
-                    await mastodon.CreateResponseFromSearchResult(notification.Status, searchContents, notification.Status.Visibility, searchResponse);
-                    await mastodon.DismissNotification(notification.Id);
+                    await mastodon.CreateResponseFromSearchResult(notification.Status, replyId, searchContents, searchResponse);
+                   
                 }
 
                 Thread.Sleep(TimeSpan.FromSeconds(10));
