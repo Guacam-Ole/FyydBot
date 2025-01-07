@@ -22,7 +22,6 @@ public class FyydBot
         var logger = services.GetService<ILogger<FyydBot>>() ?? throw new NullReferenceException();
 
         logger.LogInformation("FyddBot started");
-
         while (true)
         {
             try
@@ -138,7 +137,6 @@ public class FyydBot
         services.AddScoped<Mastodon>();
         services.AddScoped<Llama>();
         services.AddScoped<Fyyd>();
-
 
         var provider = services.BuildServiceProvider();
         return provider;

@@ -1,22 +1,23 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Recognizers.Text.DateTime;
 using Newtonsoft.Json;
-
-namespace FyydBot;
-
 using LLama.Common;
 using LLama;
 using LLama.Sampling;
+
+namespace FyydBot;
 
 public class Llama
 {
     private readonly Config _config;
     private readonly ILogger<Llama> _logger;
+    private ChatSession _querySession;
 
     public Llama(Config config, ILogger<Llama> logger)
     {
         _config = config;
         _logger = logger;
+        Init();
     }
 
     private static ChatHistory DefineStructuredChatHistory()
@@ -136,6 +137,21 @@ public class Llama
         }
     }
 
+    public void Init()
+    {
+        var parameters = new ModelParams(_config.Gguf)
+        {
+            ContextSize = 1024,
+            GpuLayerCount = 5,
+        };
+
+        var model = LLamaWeights.LoadFromFile(parameters);
+        var context = model.CreateContext(parameters);
+
+        var executor = new InteractiveExecutor(context);
+        _querySession = new ChatSession(executor, DefineStructuredChatHistory());
+    }
+
     public async Task<LlamaResponseQuery?> ParseSearchQuery(string search)
     {
         while (search.Contains("@"))
@@ -153,25 +169,14 @@ public class Llama
 
         search = search.Replace("\n", "").Trim();
 
-
         try
         {
             var now = DateTime.Now;
-            var parameters = new ModelParams(_config.Gguf)
-            {
-                ContextSize = 1024,
-                GpuLayerCount = 0,
-            };
-            using var model = LLamaWeights.LoadFromFile(parameters);
-            using var context = model.CreateContext(parameters);
-            var executor = new InteractiveExecutor(context);
-
-            ChatSession querySession = new(executor, DefineStructuredChatHistory());
 
             var response = string.Empty;
             await foreach (
                 var text
-                in querySession.ChatAsync(
+                in _querySession.ChatAsync(
                     new ChatHistory.Message(AuthorRole.User, search),
                     GetInferenceParams()))
             {
