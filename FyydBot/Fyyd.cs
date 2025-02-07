@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace FyydBot;
 
@@ -8,6 +10,7 @@ public class Fyyd
     private static readonly Dictionary<int, string?> PodcastNames = new();
     private readonly ILogger<Fyyd> _logger;
     private readonly HttpClient _client;
+    private readonly List<string> _blackList = ["Podcast"];
 
     public Fyyd(ILogger<Fyyd> logger)
     {
@@ -20,18 +23,27 @@ public class Fyyd
     }
 
     private const string FyydUrl = "https://api.fyyd.de/0.2/";
-    private string _query = "search/episode?";
-
+    private const string Query = "search/episode?";
 
     public async Task<List<FyydSearchResponse.FyydResponseElement>?> SearchForEpisode(LlamaResponseQuery llamaQuery)
     {
         try
         {
-            if (llamaQuery.PodcastName != null) llamaQuery.PodcastName = llamaQuery.PodcastName.Replace("Podcast", "").Trim();
-            var query = _query;
-            if (!string.IsNullOrWhiteSpace(llamaQuery.PodcastName)) query += $"podcast_title={llamaQuery.PodcastName}&";
-            query += $"term={llamaQuery.Keywords}";
+            if (llamaQuery.PodcastName != null)
+            {
+                foreach (var blacklistItem in _blackList)
+                {
+                    llamaQuery.PodcastName = llamaQuery.PodcastName.Replace(blacklistItem, "");
+                }
 
+                llamaQuery.PodcastName = llamaQuery.PodcastName.Trim();
+            }
+
+
+            var query = Query;
+            if (!string.IsNullOrWhiteSpace(llamaQuery.PodcastName)) query += $"podcast_title={llamaQuery.PodcastName.Escape()}&";
+            query += $"term={llamaQuery.Keywords?.Escape()}";
+            _logger.LogDebug("Sending query '{query}' to Fyyd", query);
             var response = await _client.GetFromJsonAsync<FyydSearchResponse>(query);
             if (response == null) return null;
             var matches = response.Data;
@@ -50,22 +62,23 @@ public class Fyyd
                 episode.PodcastName = await GetPodcastName(episode.PodcastId);
             }
 
-            _logger.LogInformation("Found '{count}' episoden for search query: '{query}'", response.Data.Count, llamaQuery);
+            _logger.LogInformation("Found '{count}' episodes for search query: '{query}'", response.Data.Count,
+                llamaQuery.Query);
             return matches;
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "getting search results failed for query '{query}'", llamaQuery);
+            _logger.LogError(e, "getting search results failed for query '{query}'",
+                JsonConvert.SerializeObject(llamaQuery));
             return null;
         }
     }
 
-
     private async Task<string?> GetPodcastName(int podcastId)
     {
         if (PodcastNames.TryGetValue(podcastId, out var podcastName)) return podcastName;
-        var podcastNameFromFydd = await GetPodcastNameFromFyyd(podcastId);
-        PodcastNames[podcastId] = podcastNameFromFydd;
+        var podcastNameFromFyyd = await GetPodcastNameFromFyyd(podcastId);
+        PodcastNames[podcastId] = podcastNameFromFyyd;
         return PodcastNames[podcastId];
     }
 
