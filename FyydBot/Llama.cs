@@ -133,7 +133,7 @@ public class Llama
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Cannot deserialize LLama response");
+                _logger.LogError(e, "Cannot deserialize LLama response '{response}'", json);
                 return null;
             }
 
